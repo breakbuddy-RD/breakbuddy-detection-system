@@ -1,5 +1,5 @@
 import threading
-from bitalino_script import BITalino
+from bitalino import BITalino
 from datetime import datetime
 import requests
 from pymongo import MongoClient

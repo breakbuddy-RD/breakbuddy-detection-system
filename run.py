@@ -7,7 +7,7 @@ import sys
 # Variable globale pour le processus en cours
 current_process = None
 
-def signal_handler(sig, frame):
+def signal_handler(_, __):
     global current_process
     if current_process:
         current_process.terminate()
