@@ -3,7 +3,7 @@ from bitalino import BITalino
 from datetime import datetime
 import requests
 from pymongo import MongoClient
-MAX_DATA_SEND_SAVE = 100000
+MAX_DATA_SEND_SAVE = 200000
 # Adresse MAC de votre appareil BITalino
 macAddress = "98:D3:51:FE:84:FC"
 

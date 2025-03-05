@@ -10,7 +10,7 @@ app = Flask(__name__)
 client = MongoClient("mongodb://localhost:27017/")
 db = client["bitalino"]
 collection = db["data"]
-LIMIT_DISPLAY = 10000
+LIMIT_DISPLAY = 20000
 
 @app.route("/data", methods=["GET"])
 def get_all_data():
@@ -32,8 +32,20 @@ def get_data_by_channel(channel):
 
 @app.route("/")
 def home():
+    return render_template("home.html")
+
+@app.route("/channels")
+def channels():
     channels = collection.distinct("channel")
-    return render_template("home.html", channels=channels)
+    return render_template("channels.html", channels=channels)
+
+@app.route("/manage")
+def manage():
+    return render_template("manage.html")
+
+@app.route("/worker")
+def worker():
+    return render_template("worker.html")
 
 @app.route("/channel/<string:channel>")
 def channel_graph(channel):

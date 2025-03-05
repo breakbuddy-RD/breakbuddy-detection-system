@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Home</title>
+    <title>Channels</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -54,15 +54,20 @@
 </head>
 <body>
     <header>
-        <h1>Break Budy</h1>
+        <h1>Information BITalino</h1>
     </header>
 
     <div class="container">
-        
+        <h2 style="text-align: center;">Liste des Channels</h2>
+
+        <div class="channel-list">
+            {% for channel in channels %}
+            <div class="channel-card">
+                <div class="channel-title">Channel {{ channel }}</div>
+                <iframe src="http://127.0.0.1:5000/channel/{{ channel }}"></iframe>
+            </div>
+            {% endfor %}
+        </div>
     </div>
-    <div class="container"></div>
-    <footer style="text-align: center; padding: 20px; background-color: #0b162c; color: white; position: fixed; bottom: 0; width: 100%;">
-        <a href="http://127.0.0.1:5000/channels" style="color: white; text-decoration: none;">Voir tous les canaux</a>
-    </footer>
 </body>
 </html>
