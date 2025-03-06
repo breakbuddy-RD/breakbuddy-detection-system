@@ -57,17 +57,20 @@
         <h1>Information BITalino</h1>
     </header>
 
-    <div class="container">
-        <h2 style="text-align: center;">Liste des Channels</h2>
-
-        <div class="channel-list">
-            {% for channel in channels %}
-            <div class="channel-card">
-                <div class="channel-title">Channel {{ channel }}</div>
-                <iframe src="http://127.0.0.1:5000/channel/{{ channel }}"></iframe>
+    {% for user in users %}
+        <div class="container">
+            <h2 style="text-align: center;">Liste des Channels de {{ user }}</h2>
+            <div class="channel-list">
+                {% for channel in channels %}
+                <div class="channel-card">
+                    <div class="channel-title">Channel {{ channel }}</div>
+                    <iframe src="http://127.0.0.1:5000/channel/{{user}}/{{ channel }}
+                    "></iframe>
+                </div>
+                {% endfor %}
             </div>
-            {% endfor %}
         </div>
-    </div>
+    {% endfor %}
+
 </body>
 </html>

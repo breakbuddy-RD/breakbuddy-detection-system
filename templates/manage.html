@@ -34,7 +34,7 @@
             border-radius: 10px;
             padding: 20px;
             box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
-            width: 45%;
+            width: 95%;
             max-width: 600px;
             text-align: center;
         }
@@ -50,17 +50,113 @@
             border-radius: 5px;
             border: 1px solid #ddd;
         }
+        .teams-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+        }
+        .team-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            width: 600px;
+        }
+        .team-title {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        .worker-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .worker-card {
+            background: #007BFF;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            text-align: left;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .worker-card:hover {
+            transform: scale(1.05);
+            background: #0056b3;
+        }
+        .channel-card {
+            background: #f8f9fa;
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 5px;
+            text-align: left;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+        .channel-card:hover {
+            background: #e2e6ea;
+        }
+        .channel-title {
+            font-size: 18px;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
     <header>
-        <h1>Break Budy</h1>
+        <h1>Break Buddy Manage</h1>
     </header>
 
     <div class="container">
         
     </div>
-    <div class="container"></div>
+    <div class="teams-container">
+        <div class="team-card">
+            <div class="team-title">Team Alpha</div>
+            <div class="worker-list">
+                <div class="channel-card" onclick="window.location.href='http://127.0.0.1:5000/worker1'">
+                    <div class="channel-title">Worker 1</div>
+                </div>
+                <div class="channel-card" onclick="window.location.href='http://127.0.0.1:5000/worker2'">
+                    <div class="channel-title">Worker 2</div>
+                </div>
+                <div class="channel-card" onclick="window.location.href='http://127.0.0.1:5000/worker3'">
+                    <div class="channel-title">Worker 3</div>
+                </div>
+            </div>
+        </div>
+        <div class="team-card">
+            <div class="team-title">Team Beta</div>
+            <div class="worker-list">
+                <div class="channel-card" onclick="window.location.href='http://127.0.0.1:5000/worker4'">
+                    <div class="channel-title">Worker 4</div>
+                </div>
+                <div class="channel-card" onclick="window.location.href='http://127.0.0.1:5000/worker5'">
+                    <div class="channel-title">Worker 5</div>
+                </div>
+                <div class="channel-card" onclick="window.location.href='http://127.0.0.1:5000/worker6'">
+                    <div class="channel-title">Worker 6</div>
+                </div>
+            </div>
+        </div>
+        <div class="team-card">
+            <div class="team-title">Team Gamma</div>
+            <div class="worker-list">
+            <div class="channel-card" onclick="window.location.href='http://127.0.0.1:5000/worker7'">
+                <div class="channel-title" style="text-align: left;">Worker 7</div>
+            </div>
+            <div class="channel-card" onclick="window.location.href='http://127.0.0.1:5000/worker8'">
+                <div class="channel-title" style="text-align: left;">Worker 8</div>
+            </div>
+            <div class="channel-card" onclick="window.location.href='http://127.0.0.1:5000/worker9'">
+                <div class="channel-title" style="text-align: left;">Worker 9</div>
+            </div>
+            </div>
+        </div>
+    </div>
     <footer style="text-align: center; padding: 20px; background-color: #0b162c; color: white; position: fixed; bottom: 0; width: 100%;">
         <a href="http://127.0.0.1:5000/channels" style="color: white; text-decoration: none;">Voir tous les canaux</a>
     </footer>

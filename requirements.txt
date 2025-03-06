@@ -2,3 +2,5 @@ flask
 requests
 pymongo
 bitalino
+pandas
+scipy

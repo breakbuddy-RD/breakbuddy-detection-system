@@ -3,9 +3,15 @@ from bitalino import BITalino
 from datetime import datetime
 import requests
 from pymongo import MongoClient
+import time
+import sys
 MAX_DATA_SEND_SAVE = 200000
 # Adresse MAC de votre appareil BITalino
-macAddress = "98:D3:51:FE:84:FC"
+if len(sys.argv) != 2:
+    print("Usage: python bitalino_script.py <MAC_ADDRESS>")
+    sys.exit(1)
+
+macAddress = sys.argv[1]
 
 
 # Créer une instance de l'appareil BITalino
@@ -29,13 +35,14 @@ def collect_data():
     try:
         i = 0
         while True:
+            i += 1
             data = device.read(1)  # Lire 1 échantillon
             channel_1_data = data[0, 5]  # Extraire la valeur courante du canal 1
             channel_2_data = data[0, 6]  # Extraire la valeur courante du canal 2
             channel_3_data = data[0, 7]  # Extraire la valeur courante du canal 3
             channel_4_data = data[0, 8]  # Extraire la valeur courante du canal 4
-            channel_5_data = data[0, 9]  # Extraire la valeur courante du canal 5
-            channel_6_data = data[0, 10]  # Extraire la valeur courante du canal 6
+            channel_5_data = data[0, 9]*10  # Extraire la valeur courante du canal 5
+            channel_6_data = data[0, 10]*10  # Extraire la valeur courante du canal 6
             #print(f"Valeur courante du canal 1: {channel_1_data}")
             #print(f"Valeur courante du canal 2: {channel_2_data}")
             tab1.append({'temps': datetime.now().isoformat(timespec='milliseconds'), 'valeur': channel_1_data})
@@ -60,6 +67,7 @@ def send_data():
 
             for entry in tab1[-nb_data_send*2:]:
                 data_to_send.append({
+                    'MAC': macAddress,
                     'channel': 1,
                     'time': entry['temps'],
                     'valeur': int(entry['valeur'])
@@ -67,6 +75,7 @@ def send_data():
 
             for entry in tab2[-nb_data_send*2:]:
                 data_to_send.append({
+                    'MAC': macAddress,
                     'channel': 2,
                     'time': entry['temps'],
                     'valeur': int(entry['valeur'])
@@ -74,6 +83,7 @@ def send_data():
                 
             for entry in tab3[-nb_data_send*2:]:
                 data_to_send.append({
+                    'MAC': macAddress,
                     'channel': 3,
                     'time': entry['temps'],
                     'valeur': int(entry['valeur'])
@@ -81,6 +91,7 @@ def send_data():
             
             for entry in tab4[-nb_data_send*2:]:
                 data_to_send.append({
+                    'MAC': macAddress,
                     'channel': 4,
                     'time': entry['temps'],
                     'valeur': int(entry['valeur'])
@@ -90,6 +101,7 @@ def send_data():
                 
             for entry in tab5[-nb_data_send*2:]:
                 data_to_send.append({
+                    'MAC': macAddress,
                     'channel': 5,
                     'time': entry['temps'],
                     'valeur': int(entry['valeur'])
@@ -97,6 +109,7 @@ def send_data():
                 
             for entry in tab6[-nb_data_send*2:]:
                 data_to_send.append({
+                    'MAC': macAddress,
                     'channel': 6,
                     'time': entry['temps'],
                     'valeur': int(entry['valeur'])

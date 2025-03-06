@@ -12,8 +12,9 @@
     <script>
         const threshold = 800; // Define your threshold value here
 
-        function getData(channel) {
-            return fetch(`/data/${channel}`)
+        function getData(channel,user) {
+            
+            return fetch(`/data/${user}/${channel}`)
                 .then(response => response.json())
                 .then(data => {
                     return data.map(item => {
@@ -32,6 +33,7 @@
         }
 
         document.addEventListener('DOMContentLoaded', function () {
+            const user = "{{ user }}";
             const times = {{ times|tojson|safe }};
             const valeurs = {{ valeurs|tojson|safe }}.map(val => Math.max(0, Math.min(1000, val)));
             const channel = "{{ channel }}";
@@ -47,7 +49,7 @@
             let chart;
 
             async function updateChart() {
-                const data = await getData(channel);
+                const data = await getData(channel,user);
                 if (chart) {
                     chart.series[0].setData(data);
                 } else {
@@ -92,7 +94,7 @@
             }
 
             updateChart();
-            setInterval(updateChart, 400);
+            setInterval(updateChart, 1000);
         });
     </script>
 </body>
