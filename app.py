@@ -21,6 +21,29 @@ def load_ppg_data_from_mongo(client, db, collection,user):
     df["time_ms"] = (df["time"] - df["time"].iloc[0]).dt.total_seconds() * 1000
     return df
 
+def load_accelerometer_data_from_mongo(client, db, collection, user):
+    data = list(collection.find({"channel": {"$in": [1, 2, 3]}, "MAC": user['machine']}))
+    df = pd.DataFrame(data)
+    
+    # Conversion du temps en datetime et tri
+    df["time"] = pd.to_datetime(df["time"])
+    df = df.sort_values(by="time")
+    
+    return df
+
+def calculate_acceleration(df):
+    df_pivot = df.pivot_table(index='time', columns='channel', values='valeur', aggfunc='mean')
+    df_pivot.columns = ["X", "Y", "Z"]
+    
+    if len(df_pivot.columns) < 3:
+        raise ValueError("Les données ne contiennent pas les trois axes nécessaires (X, Y, Z).")
+    
+    # Calcul de l'accélération résultante
+    df_pivot['Acceleration'] = np.sqrt(df_pivot['X']**2 + df_pivot['Y']**2 + df_pivot['Z']**2)
+    
+    return df_pivot
+
+
 def calculate_bpm(df):
     time_ms = df["time_ms"].values
     signal_values = df["valeur"].values
@@ -204,10 +227,58 @@ def workers():
     return render_template("workers.html", team=team,users=users)
 
 
-@app.route("/worker")
-def worker():
+@app.route("/worker/<int:user>")
+def worker(user):
+    filtered_user = collection_users.find_one({"id": user})
+    if not filtered_user:
+        return jsonify({"error": "Utilisateur non trouvé"}), 404
+    return render_template("worker.html",user=filtered_user)
+
+@app.route("/worker_alert/<int:user>")
+def worker_alert(user):
+    filtered_user = collection_users.find_one({"id": user})
+    if not filtered_user:
+        return jsonify({"error": "Utilisateur non trouvé"}), 404
     return render_template("worker.html")
 
+@app.route("/accelerometer/<int:user>")
+def accelerometer(user):
+    filtered_user = collection_users.find_one({"id": user})
+    if not filtered_user:
+        return jsonify({"error": "Utilisateur non trouvé"}), 404
+    df = load_accelerometer_data_from_mongo(client, db, collection, filtered_user)
+    df_pivot = calculate_acceleration(df)
+    df_pivot.index = df_pivot.index.astype(str)
+    df_pivot = df_pivot.dropna()  # Supprimer les lignes contenant des valeurs None
+    
+    result = [{"time": time, "valeur": {"Acceleration": acc, "X": x, "Y": y, "Z": z}} for time, acc, x, y, z in zip(df_pivot.index.tolist(), df_pivot['Acceleration'].values, df_pivot['X'].values, df_pivot['Y'].values, df_pivot['Z'].values)]
+    
+    return jsonify(result)
+
+@app.route("/accelerometer_graph/<int:user>")
+def accelerometer_graph(user):
+    filtered_user = collection_users.find_one({"id": user})
+    if not filtered_user:
+        return jsonify({"error": "Utilisateur non trouvé"}), 404
+    df = load_accelerometer_data_from_mongo(client, db, collection, filtered_user)
+    df_pivot = calculate_acceleration(df)
+    df_pivot.index = df_pivot.index.astype(str)
+    df_pivot = df_pivot.dropna()  # Supprimer les lignes contenant des valeurs None
+    
+    times = df_pivot.index.tolist()
+    
+    valeurs = {
+        "Acceleration": df_pivot["Acceleration"].values.tolist(),
+        "X": df_pivot["X"].values.tolist(),
+        "Y": df_pivot["Y"].values.tolist(),
+        "Z": df_pivot["Z"].values.tolist()
+    }
+    
+    
+    
+    return render_template("channel_acc.html", times=times, valeurs=valeurs, user=filtered_user['id'])
+
+    
 
 
 @app.route("/channel/<int:user>/<string:channel>")
@@ -224,6 +295,27 @@ def channel_graph(user,channel):
     valeurs = [entry["valeur"] for entry in filtered_data]
 
     return render_template("channel.html", channel=channel, times=times, valeurs=valeurs, user=filtered_user['id'])
+
+@app.route("/channel/<int:user>/<string:channel>/<string:type>")
+def channel_graph_type(user,channel,type):
+    
+    name = type
+    if type == "ppg":
+        name = "Photoplethysmography"
+    elif type == "emg":
+        name = "Mesure d'intensité musculaire (EMG)"
+    filtered_user = collection_users.find_one({"id": user})
+    if not filtered_user:
+        return jsonify({"error": "Utilisateur non trouvé"}), 404
+
+    filtered_data = list(collection.find({"channel": int(channel), "MAC": filtered_user['machine']}).sort("time", -1).limit(LIMIT_DISPLAY))
+    if not filtered_data:
+        return jsonify({"error": "Aucune donnée trouvée pour ce channel " + channel}), 404
+
+    times = [entry["time"] for entry in filtered_data]
+    valeurs = [entry["valeur"] for entry in filtered_data]
+
+    return render_template("channel_type.html", channel=channel, times=times, valeurs=valeurs, user=filtered_user['id'],type=name)
 
 if __name__ == "__main__":
     try:

@@ -118,7 +118,7 @@
                 <div class="worker-list">
                     {% for user in users %}
                     {% if user.team|trim == t|trim %}
-                    <div class="channel-card" id="user-{{ user.id }}" onclick="window.location.href='http://127.0.0.1:5000/worker'">
+                    <div class="channel-card" id="user-{{ user.id }}" onclick="window.location.href='http://127.0.0.1:5000/worker/{{ user.id }}'">
                         <div class="channel-title">
                             <strong>{{ user.user }}</strong>
                         </div>

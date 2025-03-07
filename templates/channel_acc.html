@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://code.highcharts.com/highcharts.js"></script>
+    <script src="https://code.highcharts.com/modules/exporting.js"></script>
+    <script src="https://code.highcharts.com/modules/export-data.js"></script>
+    <script src="https://code.highcharts.com/modules/boost.js"></script>
+</head>
+<body>
+    <div id="graph-container" style="width:99%; height:400px;"></div>
+    <script>
+        const threshold = 1000; // Define your threshold value here
+
+        function getData(user) {
+            return fetch(`/accelerometer/${user}`)
+                .then(response => response.json())
+                .then(data => {
+                    return data.map(item => {
+                        const value = Math.max(0, Math.min(1000, item.valeur));
+                        return {
+                            x: new Date(item.time).getTime(),
+                            y: value,
+                            color: value > threshold ? 'red' : 'blue' // Change color if threshold is exceeded
+                        };
+                    });
+                })
+                .catch(error => {
+                    console.error('Error fetching data:', error);
+                    return [];
+                });
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const user = "{{ user }}";
+            const times = {{ times|tojson|safe }};
+            const valeurs = {
+                "Acceleration": {{ valeurs.Acceleration|tojson|safe }},
+                "X": {{ valeurs.X|tojson|safe }},
+                "Y": {{ valeurs.Y|tojson|safe }},
+                "Z": {{ valeurs.Z|tojson|safe }}
+            };
+
+            const formattedTimes = times.map(time => new Date(time).getTime());
+            const seriesData = Object.keys(valeurs).map(key => {
+                return {
+                    name: key,
+                    data: formattedTimes.map((time, index) => {
+                        const value = Math.max(0, Math.min(1000, valeurs[key][index]));
+                        return {
+                            x: time,
+                            y: value,
+                            color: value > threshold ? 'red' : 'blue' // Change color if threshold is exceeded
+                        };
+                    }),
+                    color: key === "Acceleration" ? 'green' : key === "X" ? 'orange' : key === "Y" ? 'purple' : 'brown' // Set specific colors for each series
+                };
+            });
+
+            let chart;
+
+            async function updateChart() {
+                const data = await getData(user);
+                if (chart) {
+                    seriesData.forEach((series, index) => {
+                        chart.series[index].setData(series.data);
+                    });
+                } else {
+                    chart = Highcharts.chart('graph-container', {
+                        chart: {
+                            zooming: {
+                                type: 'x'
+                            }
+                        },
+                        title: {
+                            text: 'Accelerometer',
+                            align: 'left'
+                        },
+                        accessibility: {
+                            screenReaderSection: {
+                                beforeChartFormat: '<{headingTagName}>' +
+                                    '{chartTitle}</{headingTagName}><div>{chartSubtitle}</div>' +
+                                    '<div>{chartLongdesc}</div><div>{xAxisDescription}</div><div>' +
+                                    '{yAxisDescription}</div>'
+                            }
+                        },
+                        tooltip: {
+                            valueDecimals: 2
+                        },
+                        xAxis: {
+                            type: 'datetime'
+                        },
+                        yAxis: {
+                            title: {
+                                text: 'Amplitude'
+                            },
+                            min: 0,
+                            max: 1000
+                        },
+                        series: seriesData.map(series => ({
+                            name: series.name,
+                            data: series.data,
+                            color: series.color, // Apply the color to each series
+                            lineWidth: 0.5
+                        }))
+                    });
+                }
+            }
+
+            updateChart();
+            setInterval(updateChart, 2000);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ type }}</title>
+    <script src="https://code.highcharts.com/highcharts.js"></script>
+    <script src="https://code.highcharts.com/modules/exporting.js"></script>
+    <script src="https://code.highcharts.com/modules/export-data.js"></script>
+    <script src="https://code.highcharts.com/modules/boost.js"></script>
+</head>
+<body>
+    <div id="graph-container" style="width:99%; height:350px;"></div>
+    <script>
+        const threshold = 800; // Define your threshold value here
+
+        function getData(channel,user) {
+            
+            return fetch(`/data/${user}/${channel}`)
+                .then(response => response.json())
+                .then(data => {
+                    return data.map(item => {
+                        const value = Math.max(0, Math.min(1000, item.valeur));
+                        return {
+                            x: new Date(item.time).getTime(),
+                            y: value,
+                            color: value > threshold ? 'red' : 'blue' // Change color if threshold is exceeded
+                        };
+                    });
+                })
+                .catch(error => {
+                    console.error('Error fetching data:', error);
+                    return [];
+                });
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const user = "{{ user }}";
+            const times = {{ times|tojson|safe }};
+            const valeurs = {{ valeurs|tojson|safe }}.map(val => Math.max(0, Math.min(1000, val)));
+            const channel = "{{ channel }}";
+            const formattedTimes = times.map(time => new Date(time).getTime());
+            const data = formattedTimes.map((time, index) => {
+                const value = valeurs[index];
+                return {
+                    x: time,
+                    y: value,
+                    color: value > threshold ? 'red' : 'blue' // Change color if threshold is exceeded
+                };
+            });
+            let chart;
+
+            async function updateChart() {
+                const data = await getData(channel,user);
+                if (chart) {
+                    chart.series[0].setData(data);
+                } else {
+                    chart = Highcharts.chart('graph-container', {
+                        chart: {
+                            zooming: {
+                                type: 'x'
+                            }
+                        },
+                        title: {
+                            text: '{{ type }}',
+                            align: 'left'
+                        },
+                        accessibility: {
+                            screenReaderSection: {
+                                beforeChartFormat: '<{headingTagName}>' +
+                                    '{chartTitle}</{headingTagName}><div>{chartSubtitle}</div>' +
+                                    '<div>{chartLongdesc}</div><div>{xAxisDescription}</div><div>' +
+                                    '{yAxisDescription}</div>'
+                            }
+                        },
+                        tooltip: {
+                            valueDecimals: 2
+                        },
+                        xAxis: {
+                            type: 'datetime'
+                        },
+                        yAxis: {
+                            title: {
+                                text: 'Amplitude'
+                            },
+                            min: 0,
+                            max: 1000
+                        },
+                        series: [{
+                            data: data,
+                            lineWidth: 0.5,
+                            name: 'Amplitude',
+                        }]
+                    });
+                }
+            }
+
+            updateChart();
+            setInterval(updateChart, 2000);
+        });
+    </script>
+</body>
+</html>

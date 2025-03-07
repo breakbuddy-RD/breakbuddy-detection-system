@@ -1,68 +1,142 @@
 <!DOCTYPE html>
 <html lang="fr">
-<head>
+  <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Home</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            background-color: #f4f4f4;
-        }
-        header {
-            background-color: #0b162c;
-            color: white;
-            padding: 15px;
-            text-align: center;
-            font-size: 24px;
-        }
-        .container {
-            width: 90%;
-            max-width: 1600px;
-            margin: 20px auto;
-        }
-        .channel-list {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 20px;
-        }
-        .channel-card {
-            background: white;
-            border-radius: 10px;
-            padding: 20px;
-            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
-            width: 45%;
-            max-width: 600px;
-            text-align: center;
-        }
-        .channel-title {
-            font-size: 1.5rem;
-            font-weight: bold;
-            color: #0b162c;
-            margin-bottom: 15px;
-        }
-        iframe {
-            width: 100%;
-            height: 420px;
-            border-radius: 5px;
-            border: 1px solid #ddd;
-        }
+      /* Styles généraux */
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        background-color: #f4f4f4;
+        color: #333;
+      }
+
+      /* En-tête */
+      header {
+        background-color: #0b162c;
+        color: white;
+        padding: 20px;
+        text-align: center;
+        font-size: 24px;
+        font-weight: bold;
+      }
+
+      /* Conteneur principal */
+      .container {
+        width: 90%;
+        margin: 40px auto;
+        padding: 20px;
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+      }
+
+      /* Mise en page divisée en deux colonnes */
+      .content-wrapper {
+        display: flex;
+        justify-content: space-between;
+        gap: 20px;
+      }
+
+      .section {
+        flex: 1;
+        min-width: 45%;
+        background: #fff;
+        text-align: center;
+      }
+
+      .section-left {
+        flex: 1;
+        min-width: 30%;
+        padding: 20px;
+        background: #fff;
+        text-align: center;
+      }
+      .section-right {
+        flex: 1;
+        min-width: 65%;
+        padding: 20px;
+        background: #fff;
+        text-align: center;
+      }
+
+      h2 {
+        color: #0b162c;
+        font-size: 1.8rem;
+        margin-bottom: 10px;
+      }
+
+      p {
+        font-size: 1rem;
+        line-height: 1.5;
+      }
+
+      iframe {
+        width: 100%;
+        height: 400px;
+        border: none;
+        border-radius: 5px;
+      }
+
+      /* Pied de page */
+      footer {
+        text-align: center;
+        padding: 20px;
+        background-color: #0b162c;
+        color: white;
+        position: fixed;
+        bottom: 0;
+        width: 100%;
+      }
+
+      footer a {
+        color: white;
+        text-decoration: none;
+        font-weight: bold;
+        transition: color 0.3s;
+      }
+
+      footer a:hover {
+        color: #f4b400;
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <header>
-        <h1>Break Buddy worker</h1>
+      <h1>Break Buddy Worker</h1>
     </header>
 
     <div class="container">
-        
+      <div class="content-wrapper">
+        <div class="section-left">
+          <h2>Section Gauche</h2>
+          <p>Ici, vous pouvez ajouter un diagramme.</p>
+        </div>
+        <div class="section-right">
+          <div class="content-wrapper">
+            <div class="section">
+              <iframe
+                src="http://127.0.0.1:5000/channel/{{ user['id'] }}/4/emg"
+              ></iframe>
+            </div>
+            <div class="section">
+              <iframe
+                src="http://127.0.0.1:5000/accelerometer_graph/{{ user['id'] }}"
+              ></iframe>
+            </div>
+          </div>
+          <iframe
+                src="http://127.0.0.1:5000/channel/{{ user['id'] }}/4/another_graph"
+              ></iframe>
+        </div>
+      </div>
     </div>
-    <div class="container"></div>
-    <footer style="text-align: center; padding: 20px; background-color: #0b162c; color: white; position: fixed; bottom: 0; width: 100%;">
-        <a href="http://127.0.0.1:5000/channels" style="color: white; text-decoration: none;">Voir tous les canaux</a>
+
+    <footer>
+      <a href="http://127.0.0.1:5000/channels">Voir tous les canaux</a>
     </footer>
-</body>
+  </body>
 </html>
