@@ -1,164 +1,217 @@
 <!DOCTYPE html>
 <html lang="fr">
-<head>
+  <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Home</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            background-color: #f4f4f4;
-        }
-        header {
-            background-color: #0b162c;
-            color: white;
-            padding: 15px;
-            text-align: center;
-            font-size: 24px;
-        }
-        .container {
-            width: 90%;
-            max-width: 1600px;
-            margin: 20px auto;
-        }
-        .channel-list {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 20px;
-        }
-        .channel-card {
-            background: white;
-            border-radius: 10px;
-            padding: 20px;
-            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
-            width: 95%;
-            max-width: 600px;
-            text-align: center;
-        }
-        .channel-title {
-            font-size: 1.5rem;
-            font-weight: bold;
-            color: #0b162c;
-            margin-bottom: 15px;
-        }
-        iframe {
-            width: 100%;
-            height: 420px;
-            border-radius: 5px;
-            border: 1px solid #ddd;
-        }
-        .teams-container {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 20px;
-            justify-content: center;
-        }
-        .team-card {
-            background: white;
-            padding: 15px;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-            width: 600px;
-        }
-        .team-title {
-            font-size: 20px;
-            font-weight: bold;
-            margin-bottom: 10px;
-            text-align: center;
-        }
-        .worker-list {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-        .worker-card {
-            background: #007BFF;
-            color: white;
-            padding: 10px;
-            border-radius: 5px;
-            text-align: left;
-            cursor: pointer;
-            transition: transform 0.2s;
-        }
-        .worker-card:hover {
-            transform: scale(1.05);
-            background: #0056b3;
-        }
-        .channel-card {
-            background: #f8f9fa;
-            border: 1px solid #ddd;
-            padding: 15px;
-            border-radius: 5px;
-            text-align: left;
-            cursor: pointer;
-            transition: background 0.3s ease;
-        }
-        .channel-card:hover {
-            background: #e2e6ea;
-        }
-        .channel-title {
-            font-size: 18px;
-            font-weight: bold;
-        }
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        background-color: #f4f4f4;
+      }
+      header {
+        background-color: #0b162c;
+        color: white;
+        padding: 15px;
+        text-align: center;
+        font-size: 24px;
+      }
+      .container {
+        width: 90%;
+        max-width: 1600px;
+        margin: 20px auto;
+      }
+      .channel-list {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 20px;
+      }
+      .channel-card {
+        background: white;
+        border-radius: 10px;
+        padding: 20px;
+        box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+        width: 95%;
+        max-width: 600px;
+        text-align: center;
+      }
+      .channel-title {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: #0b162c;
+        margin-bottom: 15px;
+      }
+      iframe {
+        width: 100%;
+        height: 420px;
+        border-radius: 5px;
+        border: 1px solid #ddd;
+      }
+      .teams-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px;
+        justify-content: center;
+      }
+      .team-card {
+        background: white;
+        padding: 15px;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        width: 600px;
+      }
+      .team-title {
+        font-size: 20px;
+        font-weight: bold;
+        margin-bottom: 10px;
+        text-align: center;
+      }
+      .worker-list {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .worker-card {
+        background: #007bff;
+        color: white;
+        padding: 10px;
+        border-radius: 5px;
+        text-align: left;
+        cursor: pointer;
+        transition: transform 0.2s;
+      }
+      .worker-card:hover {
+        transform: scale(1.05);
+        background: #0056b3;
+      }
+      .channel-card {
+        background: #f8f9fa;
+        border: 1px solid #ddd;
+        padding: 15px;
+        border-radius: 5px;
+        text-align: left;
+        cursor: pointer;
+        transition: background 0.3s ease;
+      }
+      .channel-card:hover {
+        background: #e2e6ea;
+      }
+      .channel-title {
+        font-size: 18px;
+        font-weight: bold;
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <header>
-        <h1>Break Buddy Manage</h1>
+      <h1>Break Buddy Manage</h1>
     </header>
 
     <div class="container">
-        
+        <div class="teams-container">
+            {% for t in team %}
+            <div class="team-card">
+                <div class="team-title">{{ t }}</div>
+                <div class="worker-list">
+                    {% for user in users %}
+                    {% if user.team|trim == t|trim %}
+                    <div class="channel-card" id="user-{{ user.id }}" onclick="window.location.href='http://127.0.0.1:5000/worker'">
+                        <div class="channel-title">
+                            <strong>{{ user.user }}</strong>
+                        </div>
+                        <!-- Conteneur pour les données -->
+                        <div class="data-container">
+                            <div class="emg-data" id="emg-{{ user.id }}" style="margin-top: 5px; font-size: 12px; color: gray;">
+                                Chargement EMG...
+                            </div>
+                            <div class="ppg-data" id="photoplethysmography-{{ user.id }}" style="margin-top: 5px; font-size: 12px; color: gray;">
+                                Chargement PPG...
+                            </div>
+                        </div>
+                    </div>
+    
+                    <!-- Script de récupération des données EMG -->
+                    <script>
+                        function fetchEMGData(userId) {
+                            fetch("http://127.0.0.1:5000/emg/" + userId)
+                                .then(response => response.json())
+                                .then(data => {
+                                    let emgContainer = document.getElementById("emg-" + userId);
+                                    emgContainer.innerHTML = `
+                                        <strong>MDF:</strong> ${data.MDF.toFixed(2)} Hz <br>
+                                        <strong>MNF:</strong> ${data.MNF.toFixed(2)} Hz <br>
+                                        <strong>RMS EMG:</strong> ${data.rms_emg.toFixed(2)} µV <br>
+                                        <strong>Fatigue Detected:</strong> ${data.fatigue_detected ? 'Oui' : 'Non'} <br>
+                                        <strong>IEMG:</strong> ${data.iemg.toFixed(2)} <br>
+                                        <strong>Mean EMG:</strong> ${data.mean_emg.toFixed(2)} µV <br>
+                                        <strong>Nombre de pics:</strong> ${data.num_peaks} <br>
+                                        <strong>STD EMG:</strong> ${data.std_emg.toFixed(2)} µV
+                                    `;
+                                })
+                                .catch(error => {
+                                    console.error("Erreur de chargement des données EMG:", error);
+                                    document.getElementById("emg-" + userId).innerHTML = "Données indisponibles";
+                                });
+                        }
+
+                        function fetchPPGData(userId) {
+                            fetch("http://127.0.0.1:5000/photoplethysmography/" + userId)
+                                .then(response => response.json())
+                                .then(data => {
+                                    let ppgContainer = document.getElementById("photoplethysmography-" + userId);
+                                    ppgContainer.innerHTML = `
+                                        <strong>BPM:</strong> ${data.bpm.toFixed(2)} <br>
+                                        <strong>Diastolic Peaks Count:</strong> ${data.diastolic_peaks_count} <br>
+                                        <strong>Mean Interval:</strong> ${data.mean_interval.toFixed(2)} ms <br>
+                                        <strong>STD Interval:</strong> ${data.std_interval.toFixed(2)} ms <br>
+                                        <strong>Systolic Peaks Count:</strong> ${data.systolic_peaks_count} <br>
+                                        <strong>Variability Index:</strong> ${data.variability_index.toFixed(2)}
+                                    `;
+                                })
+                                .catch(error => {
+                                    console.error("Erreur de chargement des données PPG:", error);
+                                    document.getElementById("photoplethysmography-" + userId).innerHTML = "Données indisponibles";
+                                });
+                        }
+
+                        setInterval(() => {
+                            fetchEMGData("{{ user.id }}");
+                            fetchPPGData("{{ user.id }}");
+                        }, 2000);
+                    </script>
+    
+                    {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+            {% else %}
+            <p>Aucune équipe trouvée.</p>
+            {% endfor %}
+        </div>
     </div>
-    <div class="teams-container">
-        <div class="team-card">
-            <div class="team-title">Team Alpha</div>
-            <div class="worker-list">
-                <div class="channel-card" onclick="window.location.href='http://127.0.0.1:5000/worker1'">
-                    <div class="channel-title">Worker 1</div>
-                </div>
-                <div class="channel-card" onclick="window.location.href='http://127.0.0.1:5000/worker2'">
-                    <div class="channel-title">Worker 2</div>
-                </div>
-                <div class="channel-card" onclick="window.location.href='http://127.0.0.1:5000/worker3'">
-                    <div class="channel-title">Worker 3</div>
-                </div>
-            </div>
-        </div>
-        <div class="team-card">
-            <div class="team-title">Team Beta</div>
-            <div class="worker-list">
-                <div class="channel-card" onclick="window.location.href='http://127.0.0.1:5000/worker4'">
-                    <div class="channel-title">Worker 4</div>
-                </div>
-                <div class="channel-card" onclick="window.location.href='http://127.0.0.1:5000/worker5'">
-                    <div class="channel-title">Worker 5</div>
-                </div>
-                <div class="channel-card" onclick="window.location.href='http://127.0.0.1:5000/worker6'">
-                    <div class="channel-title">Worker 6</div>
-                </div>
-            </div>
-        </div>
-        <div class="team-card">
-            <div class="team-title">Team Gamma</div>
-            <div class="worker-list">
-            <div class="channel-card" onclick="window.location.href='http://127.0.0.1:5000/worker7'">
-                <div class="channel-title" style="text-align: left;">Worker 7</div>
-            </div>
-            <div class="channel-card" onclick="window.location.href='http://127.0.0.1:5000/worker8'">
-                <div class="channel-title" style="text-align: left;">Worker 8</div>
-            </div>
-            <div class="channel-card" onclick="window.location.href='http://127.0.0.1:5000/worker9'">
-                <div class="channel-title" style="text-align: left;">Worker 9</div>
-            </div>
-            </div>
-        </div>
-    </div>
-    <footer style="text-align: center; padding: 20px; background-color: #0b162c; color: white; position: fixed; bottom: 0; width: 100%;">
-        <a href="http://127.0.0.1:5000/channels" style="color: white; text-decoration: none;">Voir tous les canaux</a>
+    
+    
+    
+
+    <footer
+      style="
+        text-align: center;
+        padding: 20px;
+        background-color: #0b162c;
+        color: white;
+        position: fixed;
+        bottom: 0;
+        width: 100%;
+      "
+    >
+      <a
+        href="http://127.0.0.1:5000/channels"
+        style="color: white; text-decoration: none"
+        >Voir tous les canaux</a
+      >
     </footer>
-</body>
+  </body>
 </html>

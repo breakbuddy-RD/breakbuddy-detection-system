@@ -117,45 +117,53 @@ def get_all_data():
 
 @app.route("/photoplethysmography/<int:user>", methods=["GET"])
 def get_bpm(user):
-    filtered_user = collection_users.find_one({"id": user})
-    if not filtered_user:
-        return jsonify({"error": "Utilisateur non trouvé"}), 404
-    df = load_ppg_data_from_mongo(client, db, collection,filtered_user)
-    bpm, _, signal_values, _, peak_intervals = calculate_bpm(df)
-    mean_interval, std_interval, variability_index = analyze_signal_variability(peak_intervals)
-    systolic_peaks, diastolic_peaks = detect_ppg_waves(signal_values)
-    
-    return jsonify({"bpm": bpm,
-                    "mean_interval": mean_interval,
-                    "std_interval": std_interval,
-                    "variability_index": variability_index,
-                    "systolic_peaks_count": len(systolic_peaks),
-                    "diastolic_peaks_count": len(diastolic_peaks)})
+    try:
+        filtered_user = collection_users.find_one({"id": user})
+        if not filtered_user:
+            return jsonify({"error": "Utilisateur non trouvé"}), 404
+        df = load_ppg_data_from_mongo(client, db, collection, filtered_user)
+        bpm, _, signal_values, _, peak_intervals = calculate_bpm(df)
+        mean_interval, std_interval, variability_index = analyze_signal_variability(peak_intervals)
+        systolic_peaks, diastolic_peaks = detect_ppg_waves(signal_values)
+        
+        return jsonify({
+            "bpm": bpm,
+            "mean_interval": mean_interval,
+            "std_interval": std_interval,
+            "variability_index": variability_index,
+            "systolic_peaks_count": len(systolic_peaks),
+            "diastolic_peaks_count": len(diastolic_peaks)
+        })
+    except Exception as e:
+        return jsonify({})
     
 @app.route("/emg/<int:user>", methods=["GET"])
 def get_emg_metrics(user):
-    filtered_user = collection_users.find_one({"id": user})
-    if not filtered_user:
-        return jsonify({"error": "Utilisateur non trouvé"}), 404
-    df = load_emg_data_from_mongo(user,client, db, collection,filtered_user)
-    mean_emg, std_emg, rms_emg, iemg, num_peaks, _, signal_values = calculate_emg_metrics(df)
-    MDF, MNF = calculate_fatigue_metrics(signal_values)
-    
-    # Détermination de la fatigue musculaire
-    FATIGUE_THRESHOLD_MDF = 50  # Seuil de Fréquence Médiane indicative de fatigue (Hz)
-    FATIGUE_THRESHOLD_MNF = 70  # Seuil de Fréquence Moyenne indicative de fatigue (Hz)
-    is_fatigued = MDF < FATIGUE_THRESHOLD_MDF or MNF < FATIGUE_THRESHOLD_MNF
-    
-    return jsonify({
-        "mean_emg": mean_emg,
-        "std_emg": std_emg,
-        "rms_emg": rms_emg,
-        "iemg": iemg,
-        "num_peaks": num_peaks,
-        "MDF": MDF,
-        "MNF": MNF,
-        "fatigue_detected": is_fatigued
-    })
+    try:
+        filtered_user = collection_users.find_one({"id": user})
+        if not filtered_user:
+            return jsonify({"error": "Utilisateur non trouvé"}), 404
+        df = load_emg_data_from_mongo(client, db, collection, filtered_user)
+        mean_emg, std_emg, rms_emg, iemg, num_peaks, _, signal_values = calculate_emg_metrics(df)
+        MDF, MNF = calculate_fatigue_metrics(signal_values)
+        
+        # Détermination de la fatigue musculaire
+        FATIGUE_THRESHOLD_MDF = 50  # Seuil de Fréquence Médiane indicative de fatigue (Hz)
+        FATIGUE_THRESHOLD_MNF = 70  # Seuil de Fréquence Moyenne indicative de fatigue (Hz)
+        is_fatigued = MDF < FATIGUE_THRESHOLD_MDF or MNF < FATIGUE_THRESHOLD_MNF
+        
+        return jsonify({
+            "mean_emg": mean_emg,
+            "std_emg": std_emg,
+            "rms_emg": rms_emg,
+            "iemg": iemg,
+            "num_peaks": num_peaks,
+            "MDF": MDF,
+            "MNF": MNF,
+            "fatigue_detected": is_fatigued
+        })
+    except Exception as e:
+        return jsonify({})
 
 
 @app.route("/data/<int:user>/<int:channel>", methods=["GET"])
@@ -184,13 +192,16 @@ def channels():
 
 @app.route("/manage")
 def manage():
-    return render_template("manage.html")
+    users = list(collection_users.find())
+    team = collection_users.distinct("team")
+    return render_template("manage.html",team=team,users=users)
 
 @app.route("/workers")
 def workers():
     users = collection_users.find({})
+    team = collection_users.distinct("team")
     
-    return render_template("workers.html", users=users)
+    return render_template("workers.html", team=team,users=users)
 
 
 @app.route("/worker")

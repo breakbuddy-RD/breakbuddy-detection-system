@@ -5,7 +5,7 @@ import requests
 from pymongo import MongoClient
 import time
 import sys
-MAX_DATA_SEND_SAVE = 200000
+MAX_DATA_SEND_SAVE = 500000
 # Adresse MAC de votre appareil BITalino
 if len(sys.argv) != 2:
     print("Usage: python bitalino_script.py <MAC_ADDRESS>")
@@ -131,13 +131,13 @@ def send_data():
                 collection.insert_many(data_to_send)
                 
                 # Compter le nombre de documents dans la collection
-                count = collection.count_documents({})
+                count = collection.count_documents({"MAC": macAddress})
                 print(f"Nombre de documents dans la collection: {count}")
                 if(count >= MAX_DATA_SEND_SAVE):
                     docs_to_delete = collection.find({}).sort("_id", 1).limit(count - MAX_DATA_SEND_SAVE)
                     ids_to_delete = [doc["_id"] for doc in docs_to_delete]
                     if ids_to_delete:
-                        collection.delete_many({"_id": {"$in": ids_to_delete}})
+                        collection.delete_many({"_id": {"$in": ids_to_delete}, "MAC": macAddress})
 
                 # Supprimer les données envoyées
                 tab1 = tab1[nb_data_send:]
