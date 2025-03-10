@@ -22,9 +22,18 @@ def run_script(script_path, mac_address):
         print("Exécution du script...")
         print("MAC address:", mac_address)
         current_process = subprocess.Popen(['python', script_path, mac_address], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-        stdout, stderr = current_process.communicate()
-        print("Output:", stdout)
-        print("Error:", stderr)
+        
+        # Lire les sorties standard et d'erreur en temps réel
+        while True:
+            output = current_process.stdout.readline()
+            if output == '' and current_process.poll() is not None:
+                break
+            if output:
+                print("Output:", output.strip())
+        
+        stderr = current_process.stderr.read()
+        if stderr:
+            print("Error:", stderr.strip())
     except Exception as e:
         print("Erreur lors de l'exécution du script:", e)
 

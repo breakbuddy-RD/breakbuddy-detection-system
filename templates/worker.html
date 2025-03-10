@@ -22,6 +22,37 @@
         text-align: center;
         font-size: 24px;
         font-weight: bold;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .header-content {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+      }
+
+      .user-info {
+        font-size: 16px;
+        text-align: left;
+        background-color: #fff;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+        margin-bottom: 20px;
+      }
+
+      .user-info span {
+        color: #f4b400;
+        font-weight: bold;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 1.8rem;
       }
 
       /* Conteneur principal */
@@ -54,6 +85,7 @@
         padding: 20px;
         background: #fff;
         text-align: center;
+        font-family: 'Courier New', Courier, monospace;
       }
       .section-right {
         flex: 1;
@@ -61,6 +93,7 @@
         padding: 20px;
         background: #fff;
         text-align: center;
+        font-family: 'Courier New', Courier, monospace;
       }
 
       h2 {
@@ -102,18 +135,69 @@
       footer a:hover {
         color: #f4b400;
       }
+
+      button {
+        background-color: #0b162c;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        font-size: 16px;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: background-color 0.3s, transform 0.3s;
+      }
+
+      button:hover {
+        background-color: #f4b400;
+        transform: scale(1.05);
+      }
+
+      button:active {
+        background-color: #0b162c;
+        transform: scale(1);
+      }
     </style>
   </head>
   <body>
     <header>
-      <h1>Break Buddy Worker</h1>
+      <div class="header-content">
+        <h1>Break Buddy Worker</h1>
+      </div>
     </header>
 
     <div class="container">
       <div class="content-wrapper">
         <div class="section-left">
-          <h2>Section Gauche</h2>
-          <p>Ici, vous pouvez ajouter un diagramme.</p>
+          <div class="user-info">
+            Nom: {{ user['user'] }}<br />
+            Age: {{ user['age'] }}<br />
+            Sexe: {{ user['sex'] }}<br />
+            Activité: {{ user['activity'] }}<br />
+            Équipe: {{ user['team'] }}<br />
+            Email: {{ user['email'] }}<br />
+            Machine: {{ user['machine'] }}
+
+          </div>
+          <button onclick="sendEmail()">Envoyer une alerte</button>
+          <script>
+            function sendEmail() {
+              fetch("http://127.0.0.1:5000/send_email", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ userId: '{{ user["id"] }}' }),
+              })
+                .then((response) => response.json())
+                .then((data) => {
+                  alert("Email envoyé avec succès!");
+                })
+                .catch((error) => {
+                  console.error("Erreur:", error);
+                  alert("Erreur lors de l'envoi de l'email.");
+                });
+            }
+          </script>
         </div>
         <div class="section-right">
           <div class="content-wrapper">
@@ -134,6 +218,9 @@
               ></iframe>
             </div>
           </div>
+          <iframe
+            src="http://127.0.0.1:5000/channel/{{ user['id'] }}/4/rms"
+          ></iframe>
         </div>
       </div>
     </div>

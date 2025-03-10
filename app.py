@@ -11,6 +11,9 @@ from pymongo import MongoClient
 import threading
 import time
 from scipy.signal import find_peaks
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
 ## Fonctions pour récupérer les données depuis MongoDB
 
@@ -242,7 +245,10 @@ client = MongoClient("mongodb://localhost:27017/")
 db = client["bitalino"]
 collection = db["data"]
 collection_users = db["users"]
-
+collection_rms = db["rms"]
+collection_mpf = db["mpf"]
+collection_bpm = db["bpm"]
+collection_surveillance = db["surveillance"]
 
 LIMIT_DISPLAY = 20000
 
@@ -305,6 +311,73 @@ def get_emg_metrics(user):
     except Exception as e:
         return jsonify({})
 
+def send_email(userId):
+    try:
+        filtered_user = collection_users.find_one({"id": int(userId)})
+        if not filtered_user:
+            return jsonify({"error": "Utilisateur non trouvé"}), 404
+        
+        recipient = filtered_user["email"]
+        
+        subject = "Alerte de fatigue musculaire"
+        body = "Bonjour,\n\nNous avons détecté des signes de fatigue musculaire dans vos dernières données EMG. Veuillez consulter un professionnel de la santé pour plus d'informations.\n\nCordialement,\nL'équipe de suivi de la santé"
+        
+
+        sender_email = "damienboucher25@gmail.com"
+        sender_password = "test"
+
+        msg = MIMEMultipart()
+        msg["From"] = sender_email
+        msg["To"] = recipient
+        msg["Subject"] = subject
+        msg.attach(MIMEText(body, "plain"))
+
+        server = smtplib.SMTP("smtp.example.com", 587)
+        server.starttls()
+        server.login(sender_email, sender_password)
+        server.sendmail(sender_email, recipient, msg.as_string())
+        server.quit()
+
+        return jsonify({"message": "Email sent successfully"}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/send_email", methods=["POST"])
+def send_email():
+    try:
+        data = request.get_json()
+        userId = data.get("userId")
+        print(userId)
+        filtered_user = collection_users.find_one({"id": int(userId)})
+        print(filtered_user)
+        if not filtered_user:
+            return jsonify({"error": "Utilisateur non trouvé"}), 404
+        
+        recipient = filtered_user["email"]
+        
+        subject = "Alerte de fatigue musculaire"
+        body = "Bonjour,\n\nNous avons détecté des signes de fatigue musculaire dans vos dernières données EMG. Veuillez consulter un professionnel de la santé pour plus d'informations.\n\nCordialement,\nL'équipe de suivi de la santé"
+        
+
+        sender_email = "damienboucher25@gmail.com"
+        sender_password = "test"
+
+        msg = MIMEMultipart()
+        msg["From"] = sender_email
+        msg["To"] = recipient
+        msg["Subject"] = subject
+        msg.attach(MIMEText(body, "plain"))
+
+        server = smtplib.SMTP("smtp.example.com", 587)
+        server.starttls()
+        server.login(sender_email, sender_password)
+        server.sendmail(sender_email, recipient, msg.as_string())
+        server.quit()
+
+        return jsonify({"message": "Email sent successfully"}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 
@@ -472,6 +545,26 @@ def channel_graph_type(user,channel,type):
         
     return render_template("channel_type.html", channel=channel, times=times, valeurs=valeurs, user=filtered_user['id'],type=type,name=name)
 
+@app.route("/graph/<int:user>", methods=["GET"])
+def graph(user):
+    filtered_user = collection_users.find_one({"id": user})
+    if not filtered_user:
+        return jsonify({"error": "Utilisateur non trouvé"}), 404
+    result = collection_surveillance.find({"machine": filtered_user["machine"]}).sort("time", -1).limit(2000)
+    times = [entry["time"] for entry in result]
+    valeurs = [entry["fatigue_score"] for entry in result]
+    return render_template("graph.html", user=filtered_user, times=times, valeurs=valeurs)
+
+@app.route("/graph/data/<int:user>", methods=["GET"])
+def graph_data(user):
+    filtered_user = collection_users.find_one({"id": user})
+    if not filtered_user:
+        return jsonify({"error": "Utilisateur non trouvé"}), 404
+    result = list(collection_surveillance.find({"machine": filtered_user["machine"]}).sort("time", -1).limit(2000))
+    for entry in result:
+        entry.pop("_id", None)
+    return jsonify(result)
+
 
 def calculate_rms(df):
     # Calculer une seule valeur RMS
@@ -526,15 +619,14 @@ def calculate_bpm_unique(df):
     
     return {"time": df["time"].iloc[-1], "valeur": bpm}
 
-collection_rms = db["rms"]
-collection_mpf = db["mpf"]
-collection_bpm = db["bpm"]
+
 
 def background_task():
     while True:
         # Votre code à exécuter en continu ici
         print("Tâche en arrière-plan en cours d'exécution...")
         # Calculer les valeurs RMS, MPF et BPM
+        ## tresholds
         try:
             users = list(collection_users.find())
             for user in users:
@@ -559,6 +651,38 @@ def background_task():
                     collection_mpf.insert_one(mpf_table)
                 if not last_bpm or (last_bpm["time"] != bpm_table["time"]):
                     collection_bpm.insert_one(bpm_table)
+                
+                df_acc = load_accelerometer_data_from_mongo(client, db, collection, user)
+                acceleration_table = calculate_acceleration(df_acc)
+                last_acceleration = acceleration_table.iloc[-1].to_dict()
+                
+                # Surveillance de la fatigue musculaire
+                normalized_rms = (rms_table["valeur"] - 500) / (1640-500)  # Normalisation entre 0 et 1 vaut 0.5
+                normalized_bpm = (bpm_table["valeur"] -40) / (220-40)  # Normalisation entre 0 et 1 vaut 0.3
+                normalized_acceleration = (last_acceleration["Acceleration"] - 600) / (1750-600)  # Normalisation entre 0 et 1 vaut 0.2
+                
+                
+                fatigue_score = normalized_rms * 0.5 + normalized_bpm * 0.3 + normalized_acceleration * 0.2
+                
+                # Vérifier si une entrée de surveillance existe déjà pour cette machine et cette heure
+                existing_entry = collection_surveillance.find_one({"machine": user["machine"], "time": rms_table["time"]})
+                if existing_entry:
+                    # Mettre à jour l'entrée existante avec le nouveau score de fatigue
+                    collection_surveillance.update_one(
+                        {"_id": existing_entry["_id"]},
+                        {"$set": {"fatigue_score": fatigue_score}}
+                    )
+                else:
+                    # Insérer une nouvelle entrée de surveillance
+                    collection_surveillance.insert_one({
+                        "machine": user["machine"],
+                        "time": rms_table["time"],
+                        "fatigue_score": fatigue_score
+                    })
+                
+                if(fatigue_score > user["treshold"]):
+                    send_email(user["id"])
+                
         except Exception as e:
             print(f"Erreur lors de l'insertion des résultats dans MongoDB : {e}", file=sys.stderr)
         time.sleep(0.2)  # Délai de 10 secondes

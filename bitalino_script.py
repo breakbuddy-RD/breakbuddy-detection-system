@@ -26,7 +26,7 @@ tab3 = []
 tab4 = []
 tab5 = []
 tab6 = []
-nb_data_send = 100
+nb_data_send = 1000
 
 envoi = False
 
@@ -89,7 +89,7 @@ def send_data():
                     'valeur': int(entry['valeur'])
                 })
             
-            for entry in tab4[-nb_data_send*2:]:
+            for entry in tab4[-nb_data_send:]:
                 data_to_send.append({
                     'MAC': macAddress,
                     'channel': 4,
@@ -99,7 +99,7 @@ def send_data():
                 })
                 
                 
-            for entry in tab5[-nb_data_send*10:]:
+            for entry in tab5[-nb_data_send:]:
                 data_to_send.append({
                     'MAC': macAddress,
                     'channel': 5,
