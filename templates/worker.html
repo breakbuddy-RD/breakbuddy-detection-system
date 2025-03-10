@@ -178,6 +178,13 @@
             Machine: {{ user['machine'] }}
 
           </div>
+          <div class="user-info">
+            Pièce : Maison<br />
+            Température : 24°C<br />
+            Humidité : 53%<br />
+            Lumière : 802 lux<br />
+            Bruit : 60 dB<br />
+          </div>
           <button onclick="sendEmail()">Envoyer une alerte</button>
           <script>
             function sendEmail() {
@@ -219,7 +226,7 @@
             </div>
           </div>
           <iframe
-            src="http://127.0.0.1:5000/channel/{{ user['id'] }}/4/rms"
+            src="http://127.0.0.1:5000/graph/{{ user['id'] }}"
           ></iframe>
         </div>
       </div>

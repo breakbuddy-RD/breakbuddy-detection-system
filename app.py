@@ -553,7 +553,7 @@ def graph(user):
     result = collection_surveillance.find({"machine": filtered_user["machine"]}).sort("time", -1).limit(2000)
     times = [entry["time"] for entry in result]
     valeurs = [entry["fatigue_score"] for entry in result]
-    return render_template("graph.html", user=filtered_user, times=times, valeurs=valeurs)
+    return render_template("graph.html", user=filtered_user['id'], times=times, valeurs=valeurs, name="Score de fatigue")
 
 @app.route("/graph/data/<int:user>", methods=["GET"])
 def graph_data(user):
@@ -563,6 +563,9 @@ def graph_data(user):
     result = list(collection_surveillance.find({"machine": filtered_user["machine"]}).sort("time", -1).limit(2000))
     for entry in result:
         entry.pop("_id", None)
+        
+    for entry in result:
+        entry["valeur"] = float(entry["fatigue_score"])
     return jsonify(result)
 
 
