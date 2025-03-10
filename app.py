@@ -8,11 +8,28 @@ import numpy as np
 import pandas as pd
 import scipy.signal as signal
 from pymongo import MongoClient
+import threading
+import time
+from scipy.signal import find_peaks
 
-def load_ppg_data_from_mongo(client, db, collection,user):
+## Fonctions pour récupérer les données depuis MongoDB
+
+def load_emg_data_from_mongo(client, db, collection,user):
  
     # Récupérer les données depuis MongoDB
-    data = list(collection.find({"channel": 5,"MAC":user['machine']}))
+    data = list(collection.find({"channel": 4,"MAC":user['machine']}))
+    df = pd.DataFrame(data)
+    
+    # Conversion du temps en datetime et tri
+    df["time"] = pd.to_datetime(df["time"])
+    df = df.sort_values(by="time")
+    df["time_ms"] = (df["time"] - df["time"].iloc[0]).dt.total_seconds() * 1000
+    return df
+
+
+def load_ppg_data_from_mongo(client, db, collection, user):
+    # Récupérer les 10 000 dernières données depuis MongoDB
+    data = list(collection.find({"channel": 5, "MAC": user['machine']}).sort("time", -1).limit(20000))
     df = pd.DataFrame(data)
     
     # Conversion du temps en datetime et tri
@@ -22,7 +39,8 @@ def load_ppg_data_from_mongo(client, db, collection,user):
     return df
 
 def load_accelerometer_data_from_mongo(client, db, collection, user):
-    data = list(collection.find({"channel": {"$in": [1, 2, 3]}, "MAC": user['machine']}))
+    # Récupérer les 10 000 dernières données depuis MongoDB
+    data = list(collection.find({"channel": {"$in": [1, 2, 3]}, "MAC": user['machine']}).sort("time", -1).limit(20000))
     df = pd.DataFrame(data)
     
     # Conversion du temps en datetime et tri
@@ -30,6 +48,8 @@ def load_accelerometer_data_from_mongo(client, db, collection, user):
     df = df.sort_values(by="time")
     
     return df
+
+## Fonctions pour calculer les métriques
 
 def calculate_acceleration(df):
     df_pivot = df.pivot_table(index='time', columns='channel', values='valeur', aggfunc='mean')
@@ -74,18 +94,6 @@ def detect_ppg_waves(signal_values, sampling_rate=1000):
 
     return systolic_peaks, diastolic_peaks
 
-def load_emg_data_from_mongo(client, db, collection,user):
- 
-    # Récupérer les données depuis MongoDB
-    data = list(collection.find({"channel": 4,"MAC":user['machine']}))
-    df = pd.DataFrame(data)
-    
-    # Conversion du temps en datetime et tri
-    df["time"] = pd.to_datetime(df["time"])
-    df = df.sort_values(by="time")
-    df["time_ms"] = (df["time"] - df["time"].iloc[0]).dt.total_seconds() * 1000
-    return df
-
 def calculate_emg_metrics(df):
     time_ms = df["time_ms"].values
     signal_values = df["valeur"].values
@@ -120,6 +128,8 @@ def calculate_fatigue_metrics(signal_values, sampling_rate=1000):
     MNF = float(np.sum(positive_freqs * positive_fft_values) / np.sum(positive_fft_values))
     
     return MDF, MNF
+
+## A Supprimer
 
 def calculate_rms_table(df, window_size=10000):
     rms_table = []
@@ -180,12 +190,6 @@ def calculate_mpf_table(df, window_size=10000, sampling_rate=1000):
     # Convertir en DataFrame final
     return pd.DataFrame(mpf_table)
 
-from scipy.signal import find_peaks
-
-import pandas as pd
-import numpy as np
-from scipy.signal import find_peaks
-
 def calculate_bpm_data(time_ms, signal_values):
     time_ms = np.sort(time_ms)  # Tri des timestamps pour éviter les BPM négatifs
     peaks, _ = find_peaks(signal_values, distance=200)
@@ -229,7 +233,7 @@ def calculate_bpm_table(df, window_size=10000, num_values=10000):
 
     return pd.DataFrame(bpm_table)
 
-
+## A Supprimer
     
 
 app = Flask(__name__)
@@ -309,7 +313,7 @@ def get_data_by_channel(user,channel):
     filtered_user = collection_users.find_one({"id": user})
     if not filtered_user:
         return jsonify({"error": "Utilisateur non trouvé"}), 404
-    filtered_data = list(collection.find({"channel": channel,"MAC":filtered_user['machine']}).sort("time", -1).limit(LIMIT_DISPLAY))
+    filtered_data = list(collection.find({"channel": channel,"MAC":filtered_user['machine']}).sort("time", -1).limit(2000))
     if not filtered_data:
         return jsonify({"error": "Aucune donnée trouvée pour ce channel"}), 404
 
@@ -429,40 +433,145 @@ def api_data(user,channel,type):
         
     return jsonify(table.to_dict(orient="records"))
 
+@app.route("/data/<int:user>/<string:type>/")
+def api_data_type(user, type):
+    filtered_user = collection_users.find_one({"id": user})
+    if not filtered_user:
+        return jsonify({"error": "Utilisateur non trouvé"}), 404
+    if type == "rms":
+        data = list(collection_rms.find({"machine": filtered_user['machine']}).sort("time", -1).limit(LIMIT_DISPLAY))
+    elif type == "mpf":
+        data = list(collection_mpf.find({"machine": filtered_user['machine']}).sort("time", -1).limit(LIMIT_DISPLAY))
+    elif type == "bpm":
+        data = list(collection_bpm.find({"machine": filtered_user['machine']}).sort("time", -1).limit(LIMIT_DISPLAY))
+    if not data:
+        return jsonify({"error": "Aucune donnée trouvée pour ce type " + type}), 404
+    for entry in data:
+        entry.pop("_id", None)  # Remove the _id field for JSON serialization
+    return jsonify(data)
+
 @app.route("/channel/<int:user>/<string:channel>/<string:type>")
 def channel_graph_type(user,channel,type):
     filtered_user = collection_users.find_one({"id": user})
     if not filtered_user:
         return jsonify({"error": "Utilisateur non trouvé"}), 404
     name = type
-    filtered_data = list(collection.find({"channel": int(channel), "MAC": filtered_user['machine']}).sort("time", -1).limit(LIMIT_DISPLAY))
-    
-    
-    if not filtered_data:
-        return jsonify({"error": "Aucune donnée trouvée pour ce channel " + channel}), 404
-    df = pd.DataFrame(filtered_data)
+
     if type == "rms":
-        name = "RMS"
-        table = calculate_rms_table(df).to_dict(orient="records")
-        
-        times = [entry["time"] for entry in table]
-        valeurs = [entry["valeur"] for entry in table]
+        result = api_data_type(user, type).get_json()
+        times = [entry["time"] for entry in result]
+        valeurs = [entry["valeur"] for entry in result]
     elif type == "mpf":
-        name = "MPF"
-        table = calculate_mpf_table(df).to_dict(orient="records")
-        times = [entry["time"] for entry in table]
-        valeurs = [entry["valeur"] for entry in table]
+        result = api_data_type(user, type).get_json()
+        times = [entry["time"] for entry in result]
+        valeurs = [entry["valeur"] for entry in result]
     elif type == "bpm":
-        name = "BPM"
-        table = calculate_bpm_table(df).to_dict(orient="records")
-        times = [entry["time"] for entry in table]
-        valeurs = [entry["valeur"] for entry in table]
+        result = api_data_type(user, type).get_json()
+        times = [entry["time"] for entry in result]
+        valeurs = [entry["valeur"] for entry in result]
         
     return render_template("channel_type.html", channel=channel, times=times, valeurs=valeurs, user=filtered_user['id'],type=type,name=name)
 
+
+def calculate_rms(df):
+    # Calculer une seule valeur RMS
+    window_size = 1000
+    if len(df) < window_size:
+        raise ValueError("Le DataFrame est trop petit pour générer une valeur RMS.")
+    
+    window_values = df["valeur"].iloc[-window_size:]
+    rms_value = np.sqrt(np.mean(window_values**2))
+    
+    return {"time": df["time"].iloc[-1], "valeur": rms_value}
+
+def calculate_mpf(df):
+    # Calculer une seule valeur MPF
+    window_size = 1000
+    sampling_rate = 1000
+    if len(df) < window_size:
+        raise ValueError("Le DataFrame est trop petit pour générer une valeur MPF.")
+    
+    window_values = df["valeur"].iloc[-window_size:]
+    fft_values = np.fft.fft(window_values)
+    freqs = np.fft.fftfreq(len(window_values), d=1/sampling_rate)
+    positive_freqs = freqs[freqs > 0]
+    positive_fft_values = np.abs(fft_values[freqs > 0])
+    MPF = np.sum(positive_freqs * positive_fft_values) / np.sum(positive_fft_values)
+    
+    return {"time": df["time"].iloc[-1], "valeur": MPF}
+
+
+def calculate_bpm_unique(df):
+    # Vérification de la longueur minimale
+    if len(df) < 1000:
+        return {"time": df["time"].iloc[-1], "valeur": None}
+
+    time_ms = df["time_ms"].values
+    signal_values = df["valeur"].values
+    
+    # Détection des pics avec un seuil dynamique
+    peaks, _ = signal.find_peaks(signal_values, distance=200, height=np.mean(signal_values) * 0.5)
+    
+    if len(peaks) < 2:
+        return {"time": df["time"].iloc[-1], "valeur": None}  # Pas assez de pics détectés
+    
+    # Calcul des intervalles entre pics
+    peak_intervals = np.diff(time_ms[peaks])
+    
+    if len(peak_intervals) == 0:
+        return {"time": df["time"].iloc[-1], "valeur": None}
+
+    # Calcul BPM
+    bpm = 60000 / np.mean(peak_intervals)
+    
+    return {"time": df["time"].iloc[-1], "valeur": bpm}
+
+collection_rms = db["rms"]
+collection_mpf = db["mpf"]
+collection_bpm = db["bpm"]
+
+def background_task():
+    while True:
+        # Votre code à exécuter en continu ici
+        print("Tâche en arrière-plan en cours d'exécution...")
+        # Calculer les valeurs RMS, MPF et BPM
+        try:
+            users = list(collection_users.find())
+            for user in users:
+                df_emg = load_emg_data_from_mongo(client, db, collection, user)
+                rms_table = calculate_rms(df_emg)
+                mpf_table = calculate_mpf(df_emg)
+                df_ppg = load_ppg_data_from_mongo(client, db, collection, user)
+                bpm_table = calculate_bpm_unique(df_ppg)
+                # Ajouter la machine à l'import
+                rms_table["machine"] = user["machine"]
+                mpf_table["machine"] = user["machine"]
+                bpm_table["machine"] = user["machine"]
+                
+                # Vérifier que la dernière valeur n'est pas à la même heure et que la machine est la même avant d'insérer les résultats dans MongoDB
+                last_rms = collection_rms.find_one({"machine": user["machine"]}, sort=[("time", -1)])
+                last_mpf = collection_mpf.find_one({"machine": user["machine"]}, sort=[("time", -1)])
+                last_bpm = collection_bpm.find_one({"machine": user["machine"]}, sort=[("time", -1)])
+                
+                if not last_rms or (last_rms["time"] != rms_table["time"]):
+                    collection_rms.insert_one(rms_table)
+                if not last_mpf or (last_mpf["time"] != mpf_table["time"]):
+                    collection_mpf.insert_one(mpf_table)
+                if not last_bpm or (last_bpm["time"] != bpm_table["time"]):
+                    collection_bpm.insert_one(bpm_table)
+        except Exception as e:
+            print(f"Erreur lors de l'insertion des résultats dans MongoDB : {e}", file=sys.stderr)
+        time.sleep(0.2)  # Délai de 10 secondes
+
 if __name__ == "__main__":
     try:
+        # Démarrer la tâche en arrière-plan
+        background_thread = threading.Thread(target=background_task)
+        background_thread.daemon = True
+        background_thread.start()
+
         app.run(host="0.0.0.0", port=5000, debug=True)
     except Exception as e:
         print(f"Erreur lors de l'exécution du serveur Flask : {e}", file=sys.stderr)
         sys.exit(1)
+        

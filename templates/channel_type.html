@@ -12,9 +12,8 @@
     <script>
         const threshold = 800; // Define your threshold value here
 
-        function getData(channel,user,type) {
-            
-            return fetch(`/data/${user}/${channel}/${type}`)
+        function getData(user, type) {
+            return fetch(`/data/${user}/${type}`)
                 .then(response => response.json())
                 .then(data => {
                     return data.map(item => {
@@ -34,11 +33,10 @@
 
         document.addEventListener('DOMContentLoaded', function () {
             const user = "{{ user }}";
-            const times = {{ times|tojson|safe }};
-            const valeurs = {{ valeurs|tojson|safe }}.map(val => Math.max(0, Math.min(1000, val)));
+            const times = JSON.parse('{{ times|tojson|safe }}');
+            const valeurs = JSON.parse('{{ valeurs|tojson|safe }}').map(val => Math.max(0, Math.min(1000, val)));
             const type = "{{ type }}";
             const name = "{{ name }}";
-            const channel = "{{ channel }}";
             const formattedTimes = times.map(time => new Date(time).getTime());
             const data = formattedTimes.map((time, index) => {
                 const value = valeurs[index];
@@ -51,7 +49,7 @@
             let chart;
 
             async function updateChart() {
-                const data = await getData(channel,user,type);
+                const data = await getData(user, type);
                 if (chart) {
                     chart.series[0].setData(data);
                 } else {
@@ -62,7 +60,7 @@
                             }
                         },
                         title: {
-                            text: '{{ name }}',
+                            text: name,
                             align: 'left'
                         },
                         accessibility: {
@@ -94,7 +92,7 @@
             }
 
             updateChart();
-            setInterval(updateChart, 2000);
+            setInterval(updateChart, 500);
         });
     </script>
 </body>
