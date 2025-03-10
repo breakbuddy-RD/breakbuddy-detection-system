@@ -121,6 +121,117 @@ def calculate_fatigue_metrics(signal_values, sampling_rate=1000):
     
     return MDF, MNF
 
+def calculate_rms_table(df, window_size=10000):
+    rms_table = []
+    df["time"] = pd.to_datetime(df["time"], errors="coerce")  
+    df["time"] = df["time"].astype('int64') // 10**6  # Convertir en millisecondes
+    # Vérification de la taille minimale du DataFrame
+    if len(df) < window_size + 10000:
+        raise ValueError("Le DataFrame est trop petit pour générer 20 000 valeurs RMS.")
+
+    # Calculer 20 000 valeurs en faisant glisser la fenêtre de 1 en 1
+    start_index = len(df) - window_size - 10000
+    for start in range(start_index, start_index + 10000):
+        window_values = df["valeur"].values[start:start + window_size]
+
+        # Vérifier que la fenêtre contient bien `window_size` valeurs
+        if len(window_values) < window_size:
+            continue  
+
+        # Calcul du RMS
+        rms_value = float(np.sqrt(np.mean(window_values**2)))
+
+        # Ajouter le résultat au tableau
+        rms_table.append({"time": df["time"].iloc[start], "valeur": rms_value})
+
+    # Convertir en DataFrame final
+    return pd.DataFrame(rms_table)
+
+
+def calculate_mpf_table(df, window_size=10000, sampling_rate=1000):
+    mpf_table = []
+    df["time"] = pd.to_datetime(df["time"], errors="coerce")  
+    df["time"] = df["time"].astype('int64') // 10**6  # Convertir en millisecondes
+    # Vérification de la taille minimale du DataFrame
+    if len(df) < window_size:
+        raise ValueError("Le DataFrame est trop petit pour générer des valeurs MPF.")
+
+    # Calculer 20 000 valeurs en faisant glisser la fenêtre de 1 en 1
+    start_index = len(df) - window_size - 10000  # Commencer 20 000 valeurs avant la fin
+    for start in range(start_index, start_index + 10000):
+        window_values = df["valeur"].values[start:start + window_size]
+
+        # Vérifier que la fenêtre contient bien `window_size` valeurs
+        if len(window_values) < window_size:
+            continue  
+
+        # Calcul de la FFT et des fréquences positives
+        fft_values = np.fft.fft(window_values)
+        freqs = np.fft.fftfreq(len(window_values), d=1/sampling_rate)
+        positive_freqs = freqs[freqs > 0]
+        positive_fft_values = np.abs(fft_values[freqs > 0])
+
+        # Calcul du MPF
+        MPF = float(np.sum(positive_freqs * positive_fft_values) / np.sum(positive_fft_values))
+
+        # Ajouter le résultat au tableau
+        mpf_table.append({"time": df["time"].iloc[start], "valeur": MPF})
+
+    # Convertir en DataFrame final
+    return pd.DataFrame(mpf_table)
+
+from scipy.signal import find_peaks
+
+import pandas as pd
+import numpy as np
+from scipy.signal import find_peaks
+
+def calculate_bpm_data(time_ms, signal_values):
+    time_ms = np.sort(time_ms)  # Tri des timestamps pour éviter les BPM négatifs
+    peaks, _ = find_peaks(signal_values, distance=200)
+
+    if len(peaks) > 1:
+        peak_intervals = np.diff(time_ms[peaks])
+
+        # Filtrer les intervalles négatifs ou aberrants
+        peak_intervals = peak_intervals[peak_intervals > 0]
+
+        if len(peak_intervals) > 0:
+            bpm = 60000 / np.mean(peak_intervals)
+        else:
+            bpm = None  # Aucun intervalle valide
+    else:
+        bpm = None
+
+    return bpm
+
+
+def calculate_bpm_table(df, window_size=10000, num_values=10000):
+    if len(df) < window_size + num_values:
+        raise ValueError("Le DataFrame est trop petit pour générer 10 000 valeurs BPM.")
+    
+    # Convertir la colonne `time` en datetime puis en timestamp (millisecondes)
+    df["time"] = pd.to_datetime(df["time"], errors="coerce")  
+    df["time"] = df["time"].astype('int64') // 10**6  # Convertir en millisecondes
+
+    # Convertir `valeur` en numérique
+    df["valeur"] = pd.to_numeric(df["valeur"], errors="coerce")
+
+    time_values = df["time"].values
+    signal_values = df["valeur"].values
+
+    start_index = len(df) - window_size - num_values
+    
+    bpm_table = [
+        {"time": time_values[start], "valeur": calculate_bpm_data(time_values[start:start+window_size], signal_values[start:start+window_size])}
+        for start in range(start_index, start_index + num_values)
+    ]
+
+    return pd.DataFrame(bpm_table)
+
+
+    
+
 app = Flask(__name__)
 
 client = MongoClient("mongodb://localhost:27017/")
@@ -159,6 +270,8 @@ def get_bpm(user):
         })
     except Exception as e:
         return jsonify({})
+
+
     
 @app.route("/emg/<int:user>", methods=["GET"])
 def get_emg_metrics(user):
@@ -187,6 +300,8 @@ def get_emg_metrics(user):
         })
     except Exception as e:
         return jsonify({})
+
+
 
 
 @app.route("/data/<int:user>/<int:channel>", methods=["GET"])
@@ -273,9 +388,6 @@ def accelerometer_graph(user):
         "Y": df_pivot["Y"].values.tolist(),
         "Z": df_pivot["Z"].values.tolist()
     }
-    
-    
-    
     return render_template("channel_acc.html", times=times, valeurs=valeurs, user=filtered_user['id'])
 
     
@@ -296,26 +408,57 @@ def channel_graph(user,channel):
 
     return render_template("channel.html", channel=channel, times=times, valeurs=valeurs, user=filtered_user['id'])
 
-@app.route("/channel/<int:user>/<string:channel>/<string:type>")
-def channel_graph_type(user,channel,type):
-    
-    name = type
-    if type == "ppg":
-        name = "Photoplethysmography"
-    elif type == "emg":
-        name = "Mesure d'intensité musculaire (EMG)"
+@app.route("/data/<int:user>/<string:channel>/<string:type>")
+def api_data(user,channel,type):
     filtered_user = collection_users.find_one({"id": user})
     if not filtered_user:
         return jsonify({"error": "Utilisateur non trouvé"}), 404
-
     filtered_data = list(collection.find({"channel": int(channel), "MAC": filtered_user['machine']}).sort("time", -1).limit(LIMIT_DISPLAY))
     if not filtered_data:
         return jsonify({"error": "Aucune donnée trouvée pour ce channel " + channel}), 404
+    df = pd.DataFrame(filtered_data)
+    
+    if type == "rms":
+        table = calculate_rms_table(df)
+        
+    elif type == "mpf":
+        table = calculate_mpf_table(df)
+        
+    elif type == "bpm":
+        table = calculate_bpm_table(df)
+        
+    return jsonify(table.to_dict(orient="records"))
 
-    times = [entry["time"] for entry in filtered_data]
-    valeurs = [entry["valeur"] for entry in filtered_data]
-
-    return render_template("channel_type.html", channel=channel, times=times, valeurs=valeurs, user=filtered_user['id'],type=name)
+@app.route("/channel/<int:user>/<string:channel>/<string:type>")
+def channel_graph_type(user,channel,type):
+    filtered_user = collection_users.find_one({"id": user})
+    if not filtered_user:
+        return jsonify({"error": "Utilisateur non trouvé"}), 404
+    name = type
+    filtered_data = list(collection.find({"channel": int(channel), "MAC": filtered_user['machine']}).sort("time", -1).limit(LIMIT_DISPLAY))
+    
+    
+    if not filtered_data:
+        return jsonify({"error": "Aucune donnée trouvée pour ce channel " + channel}), 404
+    df = pd.DataFrame(filtered_data)
+    if type == "rms":
+        name = "RMS"
+        table = calculate_rms_table(df).to_dict(orient="records")
+        
+        times = [entry["time"] for entry in table]
+        valeurs = [entry["valeur"] for entry in table]
+    elif type == "mpf":
+        name = "MPF"
+        table = calculate_mpf_table(df).to_dict(orient="records")
+        times = [entry["time"] for entry in table]
+        valeurs = [entry["valeur"] for entry in table]
+    elif type == "bpm":
+        name = "BPM"
+        table = calculate_bpm_table(df).to_dict(orient="records")
+        times = [entry["time"] for entry in table]
+        valeurs = [entry["valeur"] for entry in table]
+        
+    return render_template("channel_type.html", channel=channel, times=times, valeurs=valeurs, user=filtered_user['id'],type=type,name=name)
 
 if __name__ == "__main__":
     try:

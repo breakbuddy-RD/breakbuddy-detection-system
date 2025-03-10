@@ -5,7 +5,7 @@ import requests
 from pymongo import MongoClient
 import time
 import sys
-MAX_DATA_SEND_SAVE = 500000
+MAX_DATA_SEND_SAVE = 300000
 # Adresse MAC de votre appareil BITalino
 if len(sys.argv) != 2:
     print("Usage: python bitalino_script.py <MAC_ADDRESS>")
@@ -65,7 +65,7 @@ def send_data():
             data_to_send = []
             print("Envoi des données...")
 
-            for entry in tab1[-nb_data_send*2:]:
+            for entry in tab1[-nb_data_send:]:
                 data_to_send.append({
                     'MAC': macAddress,
                     'channel': 1,
@@ -73,7 +73,7 @@ def send_data():
                     'valeur': int(entry['valeur'])
                 })
 
-            for entry in tab2[-nb_data_send*2:]:
+            for entry in tab2[-nb_data_send:]:
                 data_to_send.append({
                     'MAC': macAddress,
                     'channel': 2,
@@ -81,7 +81,7 @@ def send_data():
                     'valeur': int(entry['valeur'])
                 })
                 
-            for entry in tab3[-nb_data_send*2:]:
+            for entry in tab3[-nb_data_send:]:
                 data_to_send.append({
                     'MAC': macAddress,
                     'channel': 3,
@@ -89,7 +89,7 @@ def send_data():
                     'valeur': int(entry['valeur'])
                 })
             
-            for entry in tab4[-nb_data_send*2:]:
+            for entry in tab4[-nb_data_send:]:
                 data_to_send.append({
                     'MAC': macAddress,
                     'channel': 4,
@@ -99,7 +99,7 @@ def send_data():
                 })
                 
                 
-            for entry in tab5[-nb_data_send*2:]:
+            for entry in tab5[-nb_data_send:]:
                 data_to_send.append({
                     'MAC': macAddress,
                     'channel': 5,
@@ -107,7 +107,7 @@ def send_data():
                     'valeur': int(entry['valeur'])
                 })
                 
-            for entry in tab6[-nb_data_send*2:]:
+            for entry in tab6[-nb_data_send:]:
                 data_to_send.append({
                     'MAC': macAddress,
                     'channel': 6,

@@ -119,18 +119,21 @@
           <div class="content-wrapper">
             <div class="section">
               <iframe
-                src="http://127.0.0.1:5000/channel/{{ user['id'] }}/4/emg"
+                src="http://127.0.0.1:5000/channel/{{ user['id'] }}/4/rms"
+              ></iframe>
+              <iframe
+                src="http://127.0.0.1:5000/channel/{{ user['id'] }}/5/bpm"
               ></iframe>
             </div>
             <div class="section">
               <iframe
                 src="http://127.0.0.1:5000/accelerometer_graph/{{ user['id'] }}"
               ></iframe>
+              <iframe
+                src="http://127.0.0.1:5000/channel/{{ user['id'] }}/4/mpf"
+              ></iframe>
             </div>
           </div>
-          <iframe
-                src="http://127.0.0.1:5000/channel/{{ user['id'] }}/4/another_graph"
-              ></iframe>
         </div>
       </div>
     </div>
