@@ -405,7 +405,7 @@ def channels():
     users = collection_users.distinct("id")
     return render_template("channels.html", channels=channels, users=users)
 
-@app.route("/manage")
+@app.route("/manager")
 def manage():
     users = list(collection_users.find())
     team = collection_users.distinct("team")
@@ -560,7 +560,7 @@ def graph_data(user):
     filtered_user = collection_users.find_one({"id": user})
     if not filtered_user:
         return jsonify({"error": "Utilisateur non trouvé"}), 404
-    result = list(collection_surveillance.find({"machine": filtered_user["machine"]}).sort("time", -1).limit(2000))
+    result = list(collection_surveillance.find({"machine": filtered_user["machine"], "fatigue_score": {"$ne": np.nan}}).sort("time", -1).limit(2000))
     for entry in result:
         entry.pop("_id", None)
         
@@ -669,19 +669,20 @@ def background_task():
                 
                 # Vérifier si une entrée de surveillance existe déjà pour cette machine et cette heure
                 existing_entry = collection_surveillance.find_one({"machine": user["machine"], "time": rms_table["time"]})
-                if existing_entry:
-                    # Mettre à jour l'entrée existante avec le nouveau score de fatigue
-                    collection_surveillance.update_one(
-                        {"_id": existing_entry["_id"]},
-                        {"$set": {"fatigue_score": fatigue_score}}
-                    )
-                else:
-                    # Insérer une nouvelle entrée de surveillance
-                    collection_surveillance.insert_one({
-                        "machine": user["machine"],
-                        "time": rms_table["time"],
-                        "fatigue_score": fatigue_score
-                    })
+                if not np.isnan(fatigue_score):
+                    if existing_entry:
+                        # Mettre à jour l'entrée existante avec le nouveau score de fatigue
+                        collection_surveillance.update_one(
+                            {"_id": existing_entry["_id"]},
+                            {"$set": {"fatigue_score": fatigue_score}}
+                        )
+                    else:
+                        # Insérer une nouvelle entrée de surveillance
+                        collection_surveillance.insert_one({
+                            "machine": user["machine"],
+                            "time": rms_table["time"],
+                            "fatigue_score": fatigue_score
+                        })
                 
                 if(fatigue_score > user["treshold"]):
                     send_email(user["id"])

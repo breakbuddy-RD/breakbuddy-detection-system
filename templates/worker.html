@@ -36,7 +36,7 @@
       }
 
       .user-info {
-        font-size: 16px;
+        font-size: 20px;
         text-align: left;
         background-color: #fff;
         padding: 20px;
@@ -212,22 +212,21 @@
               <iframe
                 src="http://127.0.0.1:5000/channel/{{ user['id'] }}/4/rms"
               ></iframe>
-              <iframe
-                src="http://127.0.0.1:5000/channel/{{ user['id'] }}/5/bpm"
-              ></iframe>
+              
             </div>
             <div class="section">
               <iframe
                 src="http://127.0.0.1:5000/accelerometer_graph/{{ user['id'] }}"
               ></iframe>
-              <iframe
-                src="http://127.0.0.1:5000/channel/{{ user['id'] }}/4/mpf"
-              ></iframe>
             </div>
           </div>
           <iframe
+                src="http://127.0.0.1:5000/channel/{{ user['id'] }}/5/bpm"
+              ></iframe>
+            <iframe
             src="http://127.0.0.1:5000/graph/{{ user['id'] }}"
-          ></iframe>
+            style="border: 2px solid #f4b400; box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);"
+            ></iframe>
         </div>
       </div>
     </div>
